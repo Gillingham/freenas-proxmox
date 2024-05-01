@@ -225,3 +225,35 @@ You will still need to configure the SSH connector for listing the ZFS Pools bec
 3. Add your new TrueNAS ZFS-over-iSCSI storage using the TrueNAS-API.
 
 4. Thanks for your support.
+
+### Multipath Support
+
+1. Setup (at least) two network paths to your LUNs, there's plenty of documentation on that https://pve.proxmox.com/wiki/ISCSI_Multipath. Beyond the networking requirements you do need the `multipath-tools` package installed on all pve hosts.
+
+2. Ensure `node.startup = automatic` is in `/etc/iscsi/iscsid.conf`.
+   After the change ensure you `systemctl restart iscsid`
+   
+4. Create a `/etc/multipath.conf` with the following defaults block:
+   ```
+   defaults {
+       polling_interval        5
+       path_selector           "round-robin 0"
+       path_grouping_policy    multibus
+       uid_attribute           ID_SERIAL
+       prio                    alua
+       path_checker            readsector0
+       rr_min_io               100
+       max_fds                 8192
+       rr_weight               priorities
+       failback                immediate
+       no_path_retry           queue
+       user_friendly_names     yes
+       find_multipaths         smart
+   }
+   ```
+   The key setting here is `find_multipaths` which tells multipath to scan for luns that are avaiable over multiple paths.
+   *NOTE* You might have to create a `blacklist { ... }` section in `multipath.conf` to exclude your physical scsi drives, the ISCSI_Multipath wiki page above has some guidance for getting the wwids.
+
+   Restart multipath, `systemctl restart multipathd`
+
+5. That's it, now when you start a VM using freenas-proxmox for storage you should see the qemu process using a `/dev/mapper/mpath..` path for the storage instead of a `iscsi://` URL.
