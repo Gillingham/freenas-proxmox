@@ -235,13 +235,14 @@ You will still need to configure the SSH connector for listing the ZFS Pools bec
    
 4. Create a `/etc/multipath.conf` with the following defaults block:
    ```
-   defaults {
+defaults {
        polling_interval        5
        path_selector           "round-robin 0"
        path_grouping_policy    multibus
        uid_attribute           ID_SERIAL
-       prio                    alua
-       path_checker            readsector0
+       prio                    sysfs
+       detect_prio             yes
+       path_checker            tur
        rr_min_io               100
        max_fds                 8192
        rr_weight               priorities
@@ -249,7 +250,7 @@ You will still need to configure the SSH connector for listing the ZFS Pools bec
        no_path_retry           queue
        user_friendly_names     yes
        find_multipaths         smart
-   }
+}
    ```
    The key setting here is `find_multipaths` which tells multipath to scan for luns that are avaiable over multiple paths.
    *NOTE* You might have to create a `blacklist { ... }` section in `multipath.conf` to exclude your physical scsi drives, the ISCSI_Multipath wiki page above has some guidance for getting the wwids.
